@@ -1,0 +1,47 @@
+require Pod::Executable.execute_command('node', ['-p',
+  'require.resolve(
+    "react-native/scripts/react_native_pods.rb",
+    {paths: [process.argv[1]]},
+  )', __dir__]).strip
+
+platform :ios, '12.0'
+
+use_modular_headers!
+
+target 'Cricket' do
+  config = use_native_modules!
+
+  # Flags change depending on the env values.
+  flags = get_default_flags()
+
+  # Define Flipper configuration
+  flipper_config = FlipperConfiguration.disabled # Disable Flipper, or customize as needed
+
+  use_react_native!(
+    :path => config[:reactNativePath],
+    :hermes_enabled => false,  # Disable Hermes here
+    :fabric_enabled => flags[:fabric_enabled],
+    :flipper_configuration => flipper_config,
+    :app_path => "#{Pod::Config.instance.installation_root}/.."
+  )
+
+  # Specify modular headers for specific pods
+  pod 'Firebase/Core', :modular_headers => true
+  pod 'Firebase/Messaging', :modular_headers => true
+  pod 'GoogleUtilities', :modular_headers => true
+
+  target 'CricketTests' do
+    inherit! :complete
+    # Pods for testing
+  end
+
+  post_install do |installer|
+    # React Native post-install processing
+    react_native_post_install(
+      installer,
+      config[:reactNativePath],
+      :mac_catalyst_enabled => false
+    )
+    __apply_Xcode_12_5_M1_post_install_workaround(installer)
+  end
+end
